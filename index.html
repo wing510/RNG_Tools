@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>RNG轉換小工具v18</title>
+<title>RNG轉換小工具v19</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 <style>
@@ -33,12 +33,126 @@
 <h2>RNG Conversion Tools 轉換小工具</h2>
 
 <div class="tabs">
+<button class="tab-btn" onclick="showTab('araParserTab')">ARA_Parser</button>
   <button class="tab-btn active" onclick="showTab('excelTab')">Comparison_Excel</button>
   <button class="tab-btn" onclick="showTab('txtTab')">Red_TXT</button>
   <button class="tab-btn" onclick="showTab('lianTab')">ARA</button>
   <button class="tab-btn" onclick="showTab('tgTab')">TG_DATE</button>
   <button class="tab-btn" onclick="showTab('tgGroupTab')">TG_Grouping</button>
   <button class="tab-btn" onclick="showTab('allTab')">Download_All </button>
+</div>
+
+<!-- ARA_Parser -->
+<div id="araParserTab" class="tab-content">
+
+  <div class="upload-box">
+
+    <p>Upload one or multiple .ara files and extract Number / Big / Small.</p>
+    <p>上傳一個或多個 .ara 檔案，整理 Number / Big / Small。</p>
+
+    <input
+      type="file"
+      id="araParserInput"
+      accept=".ara,.txt"
+      multiple
+    >
+
+    <br><br>
+
+    <div id="araParserTabs" class="tabs"></div>
+
+    <div id="araParserInfo"
+style="
+  margin-bottom:10px;
+  text-align:left;
+">
+</div>
+
+    <br>
+
+    <div style="overflow:auto;">
+
+      <table style="
+  width:100%;
+  border-collapse:collapse;
+  background:white;
+">
+
+        <thead>
+          <tr>
+            <th
+onclick="sortARAParser('number')"
+style="
+  border:1px solid #dcdde1;
+  background:#f1f5f9;
+  padding:14px;
+  font-size:15px;
+  font-weight:700;
+"
+>
+Number
+</th>
+            <th
+onclick="sortARAParser('big')"
+style="
+  border:1px solid #dcdde1;
+  background:#f1f5f9;
+  padding:14px;
+  font-size:15px;
+  font-weight:700;
+"
+>
+Big
+</th>
+            <th
+onclick="sortARAParser('small')"
+style="
+  border:1px solid #dcdde1;
+  background:#f1f5f9;
+  padding:14px;
+  font-size:15px;
+  font-weight:700;
+"
+>
+Small
+</th>
+          </tr>
+        </thead>
+
+        <tbody id="araParserBody">
+
+          <tr>
+            <td colspan="3" class="empty">
+              Upload ARA files
+            </td>
+          </tr>
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+    <br>
+
+    <textarea
+      id="araParserResult"
+      rows="10"
+      placeholder="Result will appear here"
+    ></textarea>
+
+    <br>
+
+    <button onclick="copyARAParser()">
+      Copy
+    </button>
+
+    <button onclick="downloadARAParser()">
+      Download
+    </button>
+
+  </div>
+
 </div>
 
 <!-- Comparison_Excel (與 v17 相同) -->
@@ -836,8 +950,301 @@ function downloadTGGroupingBad() {
   const text = document.getElementById('tgGroupBad').value || "";
   downloadCRLF("TG_Grouping_Errors.txt", text + "\n");
 }
+
+// ===== ARA Parser =====
+
+const araParserFiles = {};
+
+let araParserCurrent = '';
+
+const araParserBody =
+  document.getElementById('araParserBody');
+
+const araParserTabs =
+  document.getElementById('araParserTabs');
+
+const araParserResult =
+  document.getElementById('araParserResult');
+
+const araParserInfo =
+  document.getElementById('araParserInfo');
+
+document.getElementById('araParserInput')
+.addEventListener('change', function(e){
+
+  const files = e.target.files;
+
+  if(!files.length) return;
+
+  Array.from(files).forEach(file => {
+
+    const reader = new FileReader();
+
+    reader.onload = function(event){
+
+      const data =
+        parseARAParser(event.target.result);
+
+      araParserFiles[file.name] = data;
+
+      renderARAParserTabs();
+
+      if(!araParserCurrent){
+
+        araParserCurrent = file.name;
+
+        showARAParser(file.name);
+
+      }
+
+    };
+
+    reader.readAsText(file);
+
+  });
+
+});
+
+
+function parseARAParser(text){
+
+  const dataList = [];
+
+  const lines = text.split(/\r?\n/);
+
+  lines.forEach(line => {
+
+    line = line.trim();
+
+    if(!line) return;
+
+    const match = line.match(
+      /^\d\+(\d+)\+\s*(\d?)\+\s*(\d?)\+/
+    );
+
+    if(match){
+
+      const number = match[1];
+const big = Number(match[2] || 0);
+const small = Number(match[3] || 0);
+
+const exist = dataList.find(
+  x => x.number === number
+);
+
+if(exist){
+
+  exist.big += big;
+  exist.small += small;
+
+}else{
+
+  dataList.push({
+    number,
+    big,
+    small
+  });
+
+}
+
+    }
+
+  });
+
+  dataList.sort((a,b)=>
+    Number(a.number) - Number(b.number)
+  );
+
+  return dataList;
+
+}
+
+
+function renderARAParserTabs(){
+
+  araParserTabs.innerHTML = '';
+
+  Object.keys(araParserFiles)
+  .forEach(fileName => {
+
+    const tab =
+      document.createElement('button');
+
+    tab.className =
+      'tab-btn' +
+      (araParserCurrent === fileName
+        ? ' active'
+        : '');
+
+const parts =
+  fileName
+    .replace(/\.[^.]+$/, '')
+    .split('_');
+
+tab.innerHTML = `
+  <div style="
+    line-height:1.2;
+    text-align:center;
+  ">
+    <div style="
+      font-weight:600;
+      font-size:15px;
+    ">
+      ${parts[0] || ''}
+    </div>
+
+    <div style="
+      font-size:13px;
+      opacity:0.85;
+      margin-top:2px;
+    ">
+      ${parts[1] || ''}
+    </div>
+  </div>
+`;
+
+    tab.onclick = function(){
+
+      araParserCurrent = fileName;
+
+      renderARAParserTabs();
+
+      showARAParser(fileName);
+
+    };
+
+    araParserTabs.appendChild(tab);
+
+  });
+
+}
+
+
+function showARAParser(fileName){
+
+  const dataList =
+    araParserFiles[fileName];
+
+  araParserBody.innerHTML = '';
+
+  let totalBig = 0;
+  let totalSmall = 0;
+
+  let text = '';
+
+  if(!dataList.length){
+
+    araParserBody.innerHTML = `
+      <tr>
+        <td colspan="3" class="empty">
+          No Data
+        </td>
+      </tr>
+    `;
+
+    return;
+
+  }
+
+  dataList.forEach(item => {
+
+    totalBig += item.big;
+    totalSmall += item.small;
+
+    const tr =
+      document.createElement('tr');
+
+    tr.innerHTML = `
+      <td>${item.number}</td>
+      <td>${item.big}</td>
+      <td>${item.small}</td>
+    `;
+
+    araParserBody.appendChild(tr);
+
+    text +=
+      `${item.number}\t${item.big}\t${item.small}\n`;
+
+  });
+
+  araParserInfo.innerHTML = `
+  <div style="
+    color:#2563eb;
+    font-size:13px;
+    font-weight:600;
+    line-height:1.4;
+  ">
+    ${fileName}
+    ｜ Total ${dataList.length}
+    ｜ Big ${totalBig}
+    ｜ Small ${totalSmall}
+  </div>
+`;
+
+  araParserResult.value = text;
+
+}
+
+
+function sortARAParser(type){
+
+  if(!araParserCurrent) return;
+
+  const dataList =
+    araParserFiles[araParserCurrent];
+
+  if(type === 'number'){
+
+    dataList.sort((a,b)=>
+      Number(a.number) -
+      Number(b.number)
+    );
+
+  }
+
+  if(type === 'big'){
+
+    dataList.sort((a,b)=>
+      b.big - a.big
+    );
+
+  }
+
+  if(type === 'small'){
+
+    dataList.sort((a,b)=>
+      b.small - a.small
+    );
+
+  }
+
+  showARAParser(araParserCurrent);
+
+}
+
+
+function copyARAParser(){
+
+  navigator.clipboard.writeText(
+    araParserResult.value
+  );
+
+  alert('Copied');
+
+}
+
+
+function downloadARAParser(){
+
+  if(!araParserCurrent) return;
+
+  downloadCRLF(
+    araParserCurrent + '_result.txt',
+    araParserResult.value
+  );
+
+}
 </script>
 
 </body>
 </html>
-
