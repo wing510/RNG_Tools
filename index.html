@@ -2,53 +2,265 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>RNG轉換小工具v19</title>
+<title>RNG Tools 轉換小工具</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 <style>
+  :root{
+    --card-width: 720px;
+  }
   body { font-family: Arial, sans-serif; background:#f5f6fa; text-align:center; padding:30px; }
   h2 { color:#2f3640; }
   .tabs { margin-bottom:30px; }
-  .tab-btn { padding:10px 20px; border:none; border-radius:6px; background:#dcdde1; margin:0 10px; cursor:pointer; font-size:15px; }
-  .tab-btn.active { background:#273c75; color:#fff; }
+.layout{
+  display:flex;
+  gap:24px;
+  align-items:flex-start;
+}
+
+.sidebar{
+  width:220px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  position:sticky;
+  top:20px;
+  align-items:flex-start;
+}
+  .sidebar-header{
+    width:100%;
+    text-align:left;
+    padding:2px 2px 8px;
+    box-sizing:border-box;
+  }
+  .sidebar-header .brand{
+    font-weight:800;
+    letter-spacing:0.2px;
+    color:#111827;
+    font-size:16px;
+    line-height:1.15;
+  }
+  .sidebar-header .subtitle{
+    margin-top:4px;
+    font-size:12px;
+    color:#64748b;
+    line-height:1.2;
+  }
+
+.main-content{
+  width:100%;
+}
+  /* 左側選單（取代按鈕） */
+  .nav-menu{
+    width:100%;
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+    padding:0;
+    margin:0;
+    list-style:none;
+  }
+  .nav-item{
+    width:100%;
+    text-decoration:none;
+    text-align:left;
+    padding:10px 10px;
+    border:none;
+    border-left:3px solid transparent;
+    border-radius:8px;
+    background:transparent;
+    color:#334155;
+    cursor:pointer;
+    font-size:14px;
+    transition:0.15s;
+    display:block;
+    box-sizing:border-box;
+  }
+  .nav-item:hover{
+    background:#eef2ff;
+  }
+  .nav-item.active{
+    background:#e0e7ff;
+    color:#1e3a8a;
+    border-left-color:#273c75;
+    font-weight:600;
+  }
+
+  /* 內部分頁按鈕（沿用原本 tab-btn 樣式） */
+  .tab-btn {
+    text-align:left;
+    padding:12px 16px;
+    border:none;
+    border-radius:10px;
+    background:#dcdde1;
+    cursor:pointer;
+    font-size:14px;
+    transition:0.15s;
+  }
+  .tab-btn.active {
+    background:#273c75;
+    color:#fff;
+    font-weight:600;
+  }
   .tab-content { display:none; }
   .tab-content.active { display:block; }
-  .upload-box { background:#fff; border:2px dashed #718093; padding:40px; width:560px; margin:0 auto; border-radius:12px; }
+  /* ARA Parser 表格樣式（有資料時才顯示） */
+  #araParserTableWrap{ display:none; }
+  #araParserTableWrap.active{ display:block; }
+  #araParserTable td{
+    border:1px solid #dcdde1;
+    padding:6px 10px;
+    background:#fff;
+    font-size:13px;
+    line-height:1.2;
+  }
+  #araParserTable th{
+    padding:8px 10px !important;
+    font-size:13px !important;
+    line-height:1.2 !important;
+    border:1px solid #dcdde1;
+    background:#f1f5f9;
+    font-weight:700;
+    cursor:pointer;
+  }
+  #araParserInfo{
+    margin-bottom:10px;
+    text-align:left;
+  }
+  .ara-info-text{
+    color:#2563eb;
+    font-size:13px;
+    font-weight:600;
+    line-height:1.4;
+  }
+  .upload-box {
+    background:#fff;
+    border:2px dashed #718093;
+    padding:40px;
+    width:min(var(--card-width), 100%);
+    margin:0 auto;
+    border-radius:12px;
+    box-sizing:border-box;
+  }
+  .upload-box .desc-en{ margin:0 0 4px; font-size:14px; color:#111827; text-align:left; }
+  .upload-box .desc-zh{ margin:0 0 14px; font-size:12px; color:#64748b; text-align:left; }
   input[type="file"],
   input[type="text"],
   input[type="number"] { margin:10px 0; padding:6px 10px; border-radius:6px; border:1px solid #dcdde1; width:100%; box-sizing:border-box; }
   button { background:#273c75; color:#fff; border:none; padding:10px 25px; border-radius:8px; cursor:pointer; font-size:15px; margin:5px; }
   button:hover { background:#40739e; }
-  .note { font-size:12px; color:#666; margin-top:8px; line-height:1.5; text-align:left; max-width:520px; margin-left:auto; margin-right:auto; }
+  .note {
+    font-size:12px;
+    color:#666;
+    margin-top:8px;
+    line-height:1.5;
+    text-align:left;
+    max-width:none;
+    margin-left:0;
+    margin-right:0;
+  }
   .note strong { color:#2f3640; }
+  details.note-details{
+    width:100%;
+    max-width:none;
+    margin:10px 0 0;
+    text-align:left;
+  }
+  details.note-details > summary{
+    cursor:pointer;
+    user-select:none;
+    font-size:13px;
+    font-weight:700;
+    color:#1f2937;
+    list-style:none;
+    padding:8px 10px;
+    border-radius:10px;
+    background:#f1f5f9;
+    border:1px solid #e5e7eb;
+  }
+  details.note-details > summary::-webkit-details-marker{ display:none; }
+  details.note-details[open] > summary{
+    background:#e0e7ff;
+    border-color:#c7d2fe;
+    color:#1e3a8a;
+  }
+  details.note-details .note{
+    margin-top:8px;
+    max-width:none;
+  }
   textarea { width:100%; border-radius:8px; border:1px solid #dcdde1; padding:8px; font-family: Consolas, "Courier New", monospace; font-size:13px; box-sizing:border-box; }
   .small-label { font-size:13px; text-align:left; margin:10px 0 4px; }
-  .status-text { font-size:12px; color:#2563eb; font-weight:600; text-align:left; max-width:520px; margin:8px auto 0; }
+  .status-text {
+    font-size:12px;
+    color:#2563eb;
+    font-weight:600;
+    text-align:left;
+    max-width:none;
+    margin:8px 0 0;
+  }
 /* 讓 upload-box 裡面的文字靠左（包含 Step 1 / Step 2 / Step 3） */
 .upload-box p { text-align: left; }
 </style>
 </head>
 <body>
 
-<h2>RNG Conversion Tools 轉換小工具</h2>
+<div class="layout">
 
-<div class="tabs">
-<button class="tab-btn" onclick="showTab('araParserTab')">ARA_Parser</button>
-  <button class="tab-btn active" onclick="showTab('excelTab')">Comparison_Excel</button>
-  <button class="tab-btn" onclick="showTab('txtTab')">Red_TXT</button>
-  <button class="tab-btn" onclick="showTab('lianTab')">ARA</button>
-  <button class="tab-btn" onclick="showTab('tgTab')">TG_DATE</button>
-  <button class="tab-btn" onclick="showTab('tgGroupTab')">TG_Grouping</button>
-  <button class="tab-btn" onclick="showTab('allTab')">Download_All </button>
-</div>
+  <div class="sidebar">
+    <div class="sidebar-header" aria-label="App title">
+      <div class="brand">RNG Tools</div>
+      <div class="subtitle">轉換小工具</div>
+    </div>
+
+    <ul class="nav-menu" aria-label="Tools menu">
+      <li>
+        <a class="nav-item active" href="#" onclick="showTab('araParserTab', this); return false;">
+          ARA_Parser
+        </a>
+      </li>
+      <li>
+        <a class="nav-item" href="#" onclick="showTab('excelTab', this); return false;">
+          Comparison_Excel
+        </a>
+      </li>
+      <li>
+        <a class="nav-item" href="#" onclick="showTab('txtTab', this); return false;">
+          Red_TXT
+        </a>
+      </li>
+      <li>
+        <a class="nav-item" href="#" onclick="showTab('lianTab', this); return false;">
+          ARA
+        </a>
+      </li>
+      <li>
+        <a class="nav-item" href="#" onclick="showTab('tgTab', this); return false;">
+          TG_DATE
+        </a>
+      </li>
+      <li>
+        <a class="nav-item" href="#" onclick="showTab('tgGroupTab', this); return false;">
+          TG_Grouping
+        </a>
+      </li>
+      <li>
+        <a class="nav-item" href="#" onclick="showTab('allTab', this); return false;">
+          Download_All
+        </a>
+      </li>
+    </ul>
+
+  </div>
+
+  <div class="main-content">
 
 <!-- ARA_Parser -->
-<div id="araParserTab" class="tab-content">
+<div id="araParserTab" class="tab-content active">
 
   <div class="upload-box">
 
-    <p>Upload one or multiple .ara files and extract Number / Big / Small.</p>
-    <p>上傳一個或多個 .ara 檔案，整理 Number / Big / Small。</p>
+    <p class="desc-en">Upload one or multiple .ara files and extract Number / Big / Small.</p>
+    <p class="desc-zh">上傳一個或多個 .ara 檔案，整理 Number / Big / Small。</p>
 
     <input
       type="file"
@@ -61,18 +273,13 @@
 
     <div id="araParserTabs" class="tabs"></div>
 
-    <div id="araParserInfo"
-style="
-  margin-bottom:10px;
-  text-align:left;
-">
-</div>
+    <div id="araParserInfo"></div>
 
     <br>
 
-    <div style="overflow:auto;">
+    <div id="araParserTableWrap" style="overflow:auto;">
 
-      <table style="
+      <table id="araParserTable" style="
   width:100%;
   border-collapse:collapse;
   background:white;
@@ -80,52 +287,13 @@ style="
 
         <thead>
           <tr>
-            <th
-onclick="sortARAParser('number')"
-style="
-  border:1px solid #dcdde1;
-  background:#f1f5f9;
-  padding:14px;
-  font-size:15px;
-  font-weight:700;
-"
->
-Number
-</th>
-            <th
-onclick="sortARAParser('big')"
-style="
-  border:1px solid #dcdde1;
-  background:#f1f5f9;
-  padding:14px;
-  font-size:15px;
-  font-weight:700;
-"
->
-Big
-</th>
-            <th
-onclick="sortARAParser('small')"
-style="
-  border:1px solid #dcdde1;
-  background:#f1f5f9;
-  padding:14px;
-  font-size:15px;
-  font-weight:700;
-"
->
-Small
-</th>
+            <th onclick="sortARAParser('number')">Number</th>
+            <th onclick="sortARAParser('big')">Big</th>
+            <th onclick="sortARAParser('small')">Small</th>
           </tr>
         </thead>
 
         <tbody id="araParserBody">
-
-          <tr>
-            <td colspan="3" class="empty">
-              Upload ARA files
-            </td>
-          </tr>
 
         </tbody>
 
@@ -156,14 +324,16 @@ Small
 </div>
 
 <!-- Comparison_Excel (與 v17 相同) -->
-<div id="excelTab" class="tab-content active">
+<div id="excelTab" class="tab-content">
   <div class="upload-box">
-    <p>Upload all Web & Bin Excel files (.xlsx) and merge them into a comparison file.</p>
-    <p>上傳web&bin全部的Excel檔案 (.xlsx)，合併成RNGsystem比對用的Excel檔</p>
+    <p class="desc-en">Upload all Web & Bin Excel files (.xlsx) and merge them into a comparison file.</p>
+    <p class="desc-zh">上傳web&bin全部的Excel檔案 (.xlsx)，合併成RNGsystem比對用的Excel檔</p>
     <input type="file" id="excelInput" accept=".xlsx" multiple>
     <br>
     <button id="processExcelBtn">Extract & Download (Merge)</button>
-    <div class="note">
+    <details class="note-details">
+      <summary>Description / 說明</summary>
+      <div class="note">
       <strong>說明（合併輸出，不含來源檔名）</strong><br>
       ・從多個 Excel 檔案中，自動偵測常見的 4D 格式（包含 IN/OUT 區塊、多組 Num/Big/Small 標題等），只擷取有效的 Number / Big / Small 資料。<br>
       ・所有檔案與所有工作表的資料，會合併成一張新的工作表「Merged」。<br>
@@ -181,10 +351,13 @@ Small
       ・Number：<code>789</code>，Big：<code>5</code>，Small：<code>0</code><br>
       合併後輸出列：<br>
       ・number：<code>0789</code>，big：<code>5</code>，small：<code>0</code>
-    </div>
+      </div>
+    </details>
     <br><br>
     <button id="processExcelWithSourceBtn">Extract & Download (add Source)</button>
-    <div class="note">
+    <details class="note-details">
+      <summary>Description / 說明</summary>
+      <div class="note">
       <strong>說明（合併輸出，包含來源檔名 Source）</strong><br>
       ・功能與上方「Extract & Download (Merge)」相同，但會多一欄 <code>source</code>，記錄每一筆資料來自哪一個 Excel 檔案。<br>
       ・方便回溯原始檔案來源，例如針對特定檔案重新檢查或分組統計。<br>
@@ -200,18 +373,21 @@ Small
       ・輸出資料列可能會是：<br>
       &nbsp;&nbsp;&nbsp;&nbsp;<code>0123　5　2　A.xlsx</code><br>
       &nbsp;&nbsp;&nbsp;&nbsp;<code>4567　0　1　B.xlsx</code>
-    </div>
+      </div>
+    </details>
   </div>
 </div>
 
 <!-- Red_TXT (與 v17 相同) -->
 <div id="txtTab" class="tab-content">
   <div class="upload-box">
-    <p>Upload a .txt files (Top 300 or more) to convert “Red noumber”</p>
-    <p>上傳 .txt 檔案（前 300 個或更多），轉換成RNGsystem的紅字上傳格式。</p>
+    <p class="desc-en">Upload a .txt files (Top 300 or more) to convert “Red noumber”</p>
+    <p class="desc-zh">上傳 .txt 檔案（前 300 個或更多），轉換成RNGsystem的紅字上傳格式。</p>
     <input type="file" id="txtInput" accept=".txt"><br>
     <button onclick="processAndDownloadTXT()">Extract & Download</button>
-    <div class="note">
+    <details class="note-details">
+      <summary>Description / 說明</summary>
+      <div class="note">
       <strong>說明（只保留每行開頭的 4 位數字）</strong><br>
       ・從 TXT 每一行的開頭擷取「最多 4 位數字」，不足 4 位會自動在前面補 0。<br>
       ・如果該行不是以數字開頭，則直接略過那一行。<br>
@@ -235,18 +411,21 @@ Small
       ・<code>0123</code><br>
       ・<code>5678</code><br>
       （最後一行沒有數字開頭，所以會被忽略）
-    </div>
+      </div>
+    </details>
   </div>
 </div>
 
 <!-- ARA (與 v17 相同) -->
 <div id="lianTab" class="tab-content">
   <div class="upload-box">
-    <p>Upload a .ara file and convert the format "*1|N" to "*1␣␣|Y".</p>
-    <p>上傳一個 .ara 文件，將格式 "*1|N" 轉換為 "*1␣␣|Y" </p>
+    <p class="desc-en">Upload a .ara file and convert the format "*1|N" to "*1␣␣|Y".</p>
+    <p class="desc-zh">上傳一個 .ara 文件，將格式 "*1|N" 轉換為 "*1␣␣|Y"</p>
     <input type="file" id="lianInput" accept=".ara"><br>
     <button onclick="processAndDownloadARA()">Extract & Download</button>
-    <div class="note">
+    <details class="note-details">
+      <summary>Description / 說明</summary>
+      <div class="note">
       <strong>說明（批次文字取代）</strong><br>
       ・讀取整個 <code>.ara</code> 檔案，將所有出現的字串 <code>*1|N</code> 自動替換成 <code>*1  |Y</code>（<code>1</code> 後面有兩個空格）。<br>
       ・其他內容完全不變，只做這一種文字替換。<br>
@@ -264,19 +443,22 @@ Small
       轉換後：<br>
       ・<code>xxxx*1  |Yyyyy</code><br>
       ・<code>zzzz*1  |Y</code>
-    </div>
+      </div>
+    </details>
   </div>
 </div>
 
 <!-- TG_DATE（與 v17 相同） -->
 <div id="tgTab" class="tab-content">
   <div class="upload-box">
-    <p>Upload a TG.txt file and convert the format "Day TGID" to "TGID Day".</p>
-    <p>上傳一個 TG.txt 文件，並將格式「星期 TGID」轉換為「TGID 星期」。</p>
+    <p class="desc-en">Upload a TG.txt file and convert the format "Day TGID" to "TGID Day".</p>
+    <p class="desc-zh">上傳一個 TG.txt 文件，並將格式「星期 TGID」轉換為「TGID 星期」。</p>
     <input type="file" id="tgInput" accept=".txt"><br>
     <button onclick="processTGDate()">Convert & Download</button>
     <button onclick="processTGDateBack()">Convert Back & Download</button>
-    <div class="note">
+    <details class="note-details">
+      <summary>Description / 說明</summary>
+      <div class="note">
       <strong>說明（第 1、2 欄位對調，可正向／反向互換）</strong><br>
       ・每一行會先用空白或 Tab 切成多個欄位（field）。<br>
       ・如果該行欄位數少於 2 個，就不動那一行，原樣輸出。<br>
@@ -308,15 +490,16 @@ Small
       ・<code>01 ABCD XYZ 999</code><br>
       再轉一次：<br>
       ・<code>ABCD 01 XYZ 999</code>
-    </div>
+      </div>
+    </details>
   </div>
 </div>
 
 <!-- TG_Grouping（新分頁：用 TG 分組工具的邏輯，比照 RNG UI） -->
 <div id="tgGroupTab" class="tab-content">
   <div class="upload-box">
-    <p>Upload a TG.txt file and group it randomly.</p>
-    <p>上傳一個TG TXT文件，並隨機分組。</p>
+    <p class="desc-en">Upload a TG.txt file and group it randomly.</p>
+    <p class="desc-zh">上傳一個TG TXT文件，並隨機分組。</p>
     <p><strong>Step 1：</strong>Upload TG file (txt) / 上傳 TG 檔</p>
     <input id="tgGroupFile" type="file" accept=".txt">
 
@@ -344,7 +527,9 @@ Small
       <button onclick="downloadTGGroupingBad()">Download Errors / 下載錯誤行</button>
     </div>
 
-    <div class="note">
+    <details class="note-details">
+      <summary>Description / 說明</summary>
+      <div class="note">
       <strong>說明（TG 分組邏輯）</strong><br>
       ・步驟：上傳 TG TXT → 設定「每組行數範圍」（例如 7-10）→ 設定要輸出的組數（可留空）→ 按 Generate。<br>
       ・程式會從檔案最上方開始，依序往下切分：每一組先在範圍內隨機決定一個行數，再讀取對應行數。<br>
@@ -356,15 +541,16 @@ Small
       ・The tool walks from top to bottom: for each group it randomly picks a size within the range and takes that many lines in order.<br>
       ・Within each group, all lines share the first line’s prefix; codes are grouped by the trailing marker, listing codes in original order and writing each marker once at the end.<br>
       ・Any unparseable or malformed lines are collected into the Error box for further manual inspection.
-    </div>
+      </div>
+    </details>
   </div>
 </div>
 
 <!-- Download_All Builder -->
 <div id="allTab" class="tab-content">
   <div class="upload-box">
-    <p>Upload ARA / TG / KEYIN files and redfont file to build a "download_all.txt"</p>
-    <p>上傳全部ARA/TG/KEYIN/紅字的檔案，並產生RNG比對用的"download_all.txt "</p>
+    <p class="desc-en">Upload ARA / TG / KEYIN files and redfont file to build a "download_all.txt"</p>
+    <p class="desc-zh">上傳全部ARA/TG/KEYIN/紅字的檔案，並產生RNG比對用的"download_all.txt "</p>
 
     <p><strong>Step 1：</strong>Upload all ARA / TG / KEYIN files (no redfont here)</p>
     <input type="file" id="allMainInput" accept=".txt" multiple><br>
@@ -373,7 +559,9 @@ Small
     <input type="file" id="redfontInput" accept=".txt"><br><br>
 
     <button id="buildAllBtn">Build & Download download_all.txt</button>
-    <div class="note">
+    <details class="note-details">
+      <summary>Description / 說明</summary>
+      <div class="note">
       <strong>說明（分開上傳主檔與紅字 → 產生 Download_All）</strong><br>
       ・第一個上傳框請一次選取你之前下載好的 ARA / TG / KEYIN 檔案，例如：<br>
       &nbsp;&nbsp;- <code>MM38_11G001_ARA.txt</code>（Web 或 Bin 的 ARA 檔）<br>
@@ -403,100 +591,171 @@ Small
       <code>0015 10 20</code><br>
       <code>0049 10 20</code><br>
       <code>endtype:redfont</code>
-    </div>
+      </div>
+    </details>
   </div>
 </div>
 
 <script>
+// =========================
+// Shared helpers
+// =========================
+
 /* 強制所有 TXT 下載使用 Windows CRLF */
 function downloadCRLF(filename, content) {
-  if (content == null) content = "";
-  const norm = content.replace(/\r\n/g, "\n");  // 全部先統一成 \n
-  const crlf = norm.replace(/\n/g, "\r\n");     // 再全部轉 CRLF
-  const blob = new Blob([crlf], {type:'text/plain;charset=utf-8'});
-  const a = document.createElement('a');
+  const safeContent = content == null ? "" : String(content);
+  const norm = safeContent.replace(/\r\n/g, "\n"); // 全部先統一成 \n
+  const crlf = norm.replace(/\n/g, "\r\n"); // 再全部轉 CRLF
+
+  const blob = new Blob([crlf], { type: "text/plain;charset=utf-8" });
+  const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = filename;
   a.click();
 }
 
-// ===== Tabs ====
-function showTab(tabId) {
-  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-  document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-  event.target.classList.add('active');
-  document.getElementById(tabId).classList.add('active');
+// ===== Tabs (left menu) =====
+function showTab(tabId, el) {
+  document
+    .querySelectorAll(".sidebar .nav-item")
+    .forEach((a) => a.classList.remove("active"));
+
+  document
+    .querySelectorAll(".tab-content")
+    .forEach((tab) => tab.classList.remove("active"));
+
+  if (el) el.classList.add("active");
+
+  const target = document.getElementById(tabId);
+  if (target) target.classList.add("active");
 }
 
 // ===== Utils =====
-const toNum = (v) => { const s=(v??"").toString().trim(); if(!s) return 0; const n=parseFloat(s); return isNaN(n)?0:n; };
-const rowText = (row) => (row||[]).map(x=>(x??"").toString()).join(" ").toLowerCase();
-function pad4(v){ const s=(v??"").toString().trim(); const d=s.replace(/\D/g,""); if(!d) return ""; return d.length<=4?d.padStart(4,"0"):d; }
+const toNum = (v) => {
+  const s = (v ?? "").toString().trim();
+  if (!s) return 0;
+  const n = parseFloat(s);
+  return Number.isNaN(n) ? 0 : n;
+};
+
+const rowText = (row) =>
+  (row || [])
+    .map((x) => (x ?? "").toString())
+    .join(" ")
+    .toLowerCase();
+
+function pad4(v) {
+  const s = (v ?? "").toString().trim();
+  const d = s.replace(/\D/g, "");
+  if (!d) return "";
+  return d.length <= 4 ? d.padStart(4, "0") : d;
+}
 
 // ===== (R) 全排列展開 =====
-function expandRollFromCell(cell){
+function expandRollFromCell(cell) {
   const s = (cell ?? "").toString().trim();
-  const m = s.match(/^(\d{1,4})\s*\(\s*[Rr]\s*\)$/) || s.match(/^(\d{1,4})\s*[Rr]$/);
-  if(!m) return null;
+  const m =
+    s.match(/^(\d{1,4})\s*\(\s*[Rr]\s*\)$/) ||
+    s.match(/^(\d{1,4})\s*[Rr]$/);
+  if (!m) return null;
+
   const base = m[1].padStart(4, "0");
-  const arr  = base.split("");
+  const arr = base.split("");
   const seen = new Set();
-  function permute(a, l){
-    if(l === a.length){ seen.add(a.join("")); return; }
+
+  function permute(a, l) {
+    if (l === a.length) {
+      seen.add(a.join(""));
+      return;
+    }
     const used = new Set();
-    for(let i=l;i<a.length;i++){
-      if(used.has(a[i])) continue;
+    for (let i = l; i < a.length; i++) {
+      if (used.has(a[i])) continue;
       used.add(a[i]);
       [a[l], a[i]] = [a[i], a[l]];
-      permute(a, l+1);
+      permute(a, l + 1);
       [a[l], a[i]] = [a[i], a[l]];
     }
   }
+
   permute(arr, 0);
   return Array.from(seen).sort();
 }
 
 // ===== Legacy detectors (與 v17 相同) =====
-function find4DHeaderIndex(rows){ for(let i=0;i<rows.length;i++){ if(rowText(rows[i]).includes("4d")) return i; } return -1; }
-function isInOutStructure(rows,startIdx){
-  const b=Math.max(0,startIdx-3), e=Math.min(rows.length-1,startIdx+3);
-  let seenIn=false, seenOut=false, big=0, sml=0;
-  for(let r=b;r<=e;r++){
-    const t=rowText(rows[r]);
-    if(t.includes("in")) seenIn=true;
-    if(t.includes("out")) seenOut=true;
-    big+=(t.match(/\bbig\b/g)||[]).length;
-    sml+=(t.match(/\bsmall\b/g)||[]).length;
+function find4DHeaderIndex(rows) {
+  for (let i = 0; i < rows.length; i++) {
+    if (rowText(rows[i]).includes("4d")) return i;
   }
-  if((seenOut||seenIn)&&big>=2&&sml>=2) return true;
-  let head=0;
-  for(let r=startIdx;r<=Math.min(startIdx+2,rows.length-1);r++){
-    const t=rowText(rows[r]); if(t.includes("big")&&t.includes("small")) head++;
-  }
-  return head>=2;
+  return -1;
 }
-function findSingleNBSHeader(rows){
-  for(let r=0;r<rows.length;r++){
-    const row=rows[r]||[], low=row.map(x=>(x??"").toString().trim().toLowerCase());
-    const n=low.findIndex(x=>x==="number"||x==="num"||x==="no");
-    const b=low.findIndex(x=>x==="big");
-    const s=low.findIndex(x=>x==="small"||x==="sml");
-    if(n!==-1&&b!==-1&&s!==-1) return {rowIndex:r,numCol:n,bigCol:b,smlCol:s};
+
+function isInOutStructure(rows, startIdx) {
+  const b = Math.max(0, startIdx - 3);
+  const e = Math.min(rows.length - 1, startIdx + 3);
+
+  let seenIn = false;
+  let seenOut = false;
+  let big = 0;
+  let sml = 0;
+
+  for (let r = b; r <= e; r++) {
+    const t = rowText(rows[r]);
+    if (t.includes("in")) seenIn = true;
+    if (t.includes("out")) seenOut = true;
+    big += (t.match(/\bbig\b/g) || []).length;
+    sml += (t.match(/\bsmall\b/g) || []).length;
+  }
+
+  if ((seenOut || seenIn) && big >= 2 && sml >= 2) return true;
+
+  let head = 0;
+  for (let r = startIdx; r <= Math.min(startIdx + 2, rows.length - 1); r++) {
+    const t = rowText(rows[r]);
+    if (t.includes("big") && t.includes("small")) head++;
+  }
+
+  return head >= 2;
+}
+
+function findSingleNBSHeader(rows) {
+  for (let r = 0; r < rows.length; r++) {
+    const row = rows[r] || [];
+    const low = row.map((x) => (x ?? "").toString().trim().toLowerCase());
+
+    const n = low.findIndex((x) => x === "number" || x === "num" || x === "no");
+    const b = low.findIndex((x) => x === "big");
+    const s = low.findIndex((x) => x === "small" || x === "sml");
+
+    if (n !== -1 && b !== -1 && s !== -1) {
+      return { rowIndex: r, numCol: n, bigCol: b, smlCol: s };
+    }
   }
   return null;
 }
-function findMultiBlockNBSHeaders(rows){
-  for(let r=0;r<rows.length;r++){
-    const low=(rows[r]||[]).map(x=>(x??"").toString().trim().toLowerCase());
-    const blocks=[];
-    for(let c=0;c<low.length;c++){
-      if(low[c]==="num"||low[c]==="number"||low[c]==="no"){
-        const b=[1,2,3].map(d=>c+d).find(ci=>low[ci]==="big");
-        const s=[1,2,3,4].map(d=>c+d).find(ci=>low[ci]==="small"||low[ci]==="sml");
-        if(b!=null&&s!=null){ blocks.push({numCol:c,bigCol:b,smlCol:s}); c=Math.max(b,s); }
+
+function findMultiBlockNBSHeaders(rows) {
+  for (let r = 0; r < rows.length; r++) {
+    const low = (rows[r] || []).map((x) =>
+      (x ?? "").toString().trim().toLowerCase()
+    );
+
+    const blocks = [];
+    for (let c = 0; c < low.length; c++) {
+      if (low[c] === "num" || low[c] === "number" || low[c] === "no") {
+        const b = [1, 2, 3].map((d) => c + d).find((ci) => low[ci] === "big");
+        const s = [1, 2, 3, 4]
+          .map((d) => c + d)
+          .find((ci) => low[ci] === "small" || low[ci] === "sml");
+
+        if (b != null && s != null) {
+          blocks.push({ numCol: c, bigCol: b, smlCol: s });
+          c = Math.max(b, s);
+        }
       }
     }
-    if(blocks.length>=2) return {rowIndex:r,blocks};
+
+    if (blocks.length >= 2) return { rowIndex: r, blocks };
   }
   return null;
 }
@@ -648,86 +907,117 @@ async function processExcelFiles(addSource){
 }
 
 // ===== Buttons for Comparison_Excel =====
-document.getElementById("processExcelBtn").addEventListener("click", () => processExcelFiles(false));
-document.getElementById("processExcelWithSourceBtn").addEventListener("click", () => processExcelFiles(true));
+document
+  .getElementById("processExcelBtn")
+  .addEventListener("click", () => processExcelFiles(false));
 
-// ===== Red_TXT =====
-function processAndDownloadTXT(){
-  const f = document.getElementById('txtInput').files[0];
-  if(!f) return alert('Please select a TXT file first!');
+document
+  .getElementById("processExcelWithSourceBtn")
+  .addEventListener("click", () => processExcelFiles(true));
+
+// =========================
+// Red_TXT
+// =========================
+function processAndDownloadTXT() {
+  const f = document.getElementById("txtInput").files[0];
+  if (!f) return alert("Please select a TXT file first!");
+
   const r = new FileReader();
   r.onload = (e) => {
     const lines = e.target.result.split(/\r?\n/);
-    const out = lines.map(s => {
-      const m = s.match(/^(\d{1,4})/);
-      return m ? m[1].padStart(4,'0') : '';
-    }).filter(Boolean).join('\n');
-    downloadCRLF('Red.txt', out);
-    alert(`✅ Extracted ${out ? out.split('\n').length : 0} numbers!`);
+    const out = lines
+      .map((s) => {
+        const m = s.match(/^(\d{1,4})/);
+        return m ? m[1].padStart(4, "0") : "";
+      })
+      .filter(Boolean)
+      .join("\n");
+
+    downloadCRLF("Red.txt", out);
+    alert(`✅ Extracted ${out ? out.split("\n").length : 0} numbers!`);
   };
+
   r.readAsText(f);
 }
 
-// ===== ARA =====
-function processAndDownloadARA(){
-  const f = document.getElementById('lianInput').files[0];
-  if(!f) return alert('Please select a .ara file first!');
+// =========================
+// ARA
+// =========================
+function processAndDownloadARA() {
+  const f = document.getElementById("lianInput").files[0];
+  if (!f) return alert("Please select a .ara file first!");
+
   const r = new FileReader();
   r.onload = (e) => {
-    const converted = e.target.result.replace(/\*1\|N/g,'*1  |Y'); // 1 後兩個空格
-    downloadCRLF('ARA_converted.ara', converted);
-    alert('✅ Conversion completed and downloaded!');
+    const converted = e.target.result.replace(/\*1\|N/g, "*1  |Y"); // 1 後兩個空格
+    downloadCRLF("ARA_converted.ara", converted);
+    alert("✅ Conversion completed and downloaded!");
   };
+
   r.readAsText(f);
 }
 
-// ===== TG_DATE：把每行第 1、2 欄位互換（正向）=====
-function processTGDate(){
-  const f = document.getElementById('tgInput').files[0];
-  if(!f) return alert('Please select a TXT file first!');
+// =========================
+// TG_DATE：把每行第 1、2 欄位互換（正向）
+// =========================
+function processTGDate() {
+  const f = document.getElementById("tgInput").files[0];
+  if (!f) return alert("Please select a TXT file first!");
+
   const r = new FileReader();
   r.onload = (e) => {
     const lines = e.target.result.split(/\r?\n/);
-    const convertedLines = lines.map(line => {
+    const convertedLines = lines.map((line) => {
       const s = line.trim();
-      if(!s) return ""; // 保留空行為空字串
+      if (!s) return ""; // 保留空行為空字串
+
       const parts = s.split(/\s+/);
-      if(parts.length < 2) return s;
+      if (parts.length < 2) return s;
+
       const reordered = [parts[1], parts[0]].concat(parts.slice(2));
-      return reordered.join(' ');
+      return reordered.join(" ");
     });
-    const outText = convertedLines.join('\n');
-    downloadCRLF('TG_DATE.txt', outText);
-    alert('✅ TG_DATE conversion completed!');
+
+    downloadCRLF("TG_DATE.txt", convertedLines.join("\n"));
+    alert("✅ TG_DATE conversion completed!");
   };
+
   r.readAsText(f);
 }
 
-// ===== TG_DATE Back：再互換一次（反向）=====
-function processTGDateBack(){
-  const f = document.getElementById('tgInput').files[0];
-  if(!f) return alert('Please select a TXT file first!');
+// =========================
+// TG_DATE Back：再互換一次（反向）
+// =========================
+function processTGDateBack() {
+  const f = document.getElementById("tgInput").files[0];
+  if (!f) return alert("Please select a TXT file first!");
+
   const r = new FileReader();
   r.onload = (e) => {
     const lines = e.target.result.split(/\r?\n/);
-    const convertedLines = lines.map(line => {
+    const convertedLines = lines.map((line) => {
       const s = line.trim();
-      if(!s) return "";
+      if (!s) return "";
+
       const parts = s.split(/\s+/);
-      if(parts.length < 2) return s;
+      if (parts.length < 2) return s;
+
       const reordered = [parts[1], parts[0]].concat(parts.slice(2));
-      return reordered.join(' ');
+      return reordered.join(" ");
     });
-    const outText = convertedLines.join('\n');
-    downloadCRLF('TG_DATE_Back.txt', outText);
-    alert('✅ TG_DATE Back conversion completed!');
+
+    downloadCRLF("TG_DATE_Back.txt", convertedLines.join("\n"));
+    alert("✅ TG_DATE Back conversion completed!");
   };
+
   r.readAsText(f);
 }
 
-// ===== Download_All Builder =====
+// =========================
+// Download_All Builder
+// =========================
 function classifyAllFileType(fileName) {
-  const noExt = fileName.replace(/\.[^.]+$/,"");
+  const noExt = fileName.replace(/\.[^.]+$/, "");
   const lower = noExt.toLowerCase();
   if (lower.includes("_ara")) return { type: "ara", name: noExt };
   if (lower.includes("_tg")) return { type: "tg", name: noExt };
@@ -737,45 +1027,44 @@ function classifyAllFileType(fileName) {
 
 function trimTrailingEmptyLinesSimple(lines) {
   let end = lines.length;
-  while (end > 0 && lines[end-1].trim() === "") end--;
+  while (end > 0 && lines[end - 1].trim() === "") end--;
   return lines.slice(0, end);
 }
 
 async function buildDownloadAllFromUploads() {
   const mainInput = document.getElementById("allMainInput");
-  const redInput  = document.getElementById("redfontInput");
+  const redInput = document.getElementById("redfontInput");
 
   const mainFiles = Array.from(mainInput.files || []);
-  const redFiles  = Array.from(redInput.files  || []);
+  const redFiles = Array.from(redInput.files || []);
 
   if (!mainFiles.length && !redFiles.length) {
     alert("Please select ARA / TG / KEYIN files, and optionally a redfont file.");
     return;
   }
+
   if (!mainFiles.length) {
     alert("Please select at least one ARA / TG / KEYIN file (first upload box).");
     return;
   }
 
   const araSections = [];
-  const tgSections  = [];
+  const tgSections = [];
   const keySections = [];
-  let redfontLines  = [];
+  let redfontLines = [];
 
   for (const file of mainFiles) {
     const info = classifyAllFileType(file.name);
     if (!info) continue;
+
     const text = await file.text();
     const lines = text.replace(/\r?\n/g, "\n").split("\n");
     const trimmed = trimTrailingEmptyLinesSimple(lines);
     if (!trimmed.length) continue;
-    if (info.type === "ara") {
-      araSections.push({ name: info.name, lines: trimmed });
-    } else if (info.type === "tg") {
-      tgSections.push({ name: info.name, lines: trimmed });
-    } else if (info.type === "keyin") {
-      keySections.push({ name: info.name, lines: trimmed });
-    }
+
+    if (info.type === "ara") araSections.push({ name: info.name, lines: trimmed });
+    else if (info.type === "tg") tgSections.push({ name: info.name, lines: trimmed });
+    else if (info.type === "keyin") keySections.push({ name: info.name, lines: trimmed });
   }
 
   if (redFiles.length) {
@@ -790,7 +1079,7 @@ async function buildDownloadAllFromUploads() {
     return;
   }
 
-  const byName = (a,b) => a.name.localeCompare(b.name);
+  const byName = (a, b) => a.name.localeCompare(b.name);
   araSections.sort(byName);
   tgSections.sort(byName);
   keySections.sort(byName);
@@ -798,25 +1087,24 @@ async function buildDownloadAllFromUploads() {
   const outLines = [];
 
   function pushSection(type, sec) {
-    outLines.push("type:" + type + " " + sec.name);
-    outLines.push("line:" + sec.lines.length);
-    for (const line of sec.lines) outLines.push(line);
-    outLines.push("endtype:" + type + " " + sec.name);
+    outLines.push(`type:${type} ${sec.name}`);
+    outLines.push(`line:${sec.lines.length}`);
+    outLines.push(...sec.lines);
+    outLines.push(`endtype:${type} ${sec.name}`);
   }
 
-  araSections.forEach(sec => pushSection("ara",   sec));
-  tgSections .forEach(sec => pushSection("tg",    sec));
-  keySections.forEach(sec => pushSection("keyin", sec));
+  araSections.forEach((sec) => pushSection("ara", sec));
+  tgSections.forEach((sec) => pushSection("tg", sec));
+  keySections.forEach((sec) => pushSection("keyin", sec));
 
   if (redfontLines.length) {
     outLines.push("type:redfont");
-    outLines.push("line:" + redfontLines.length);
-    for (const line of redfontLines) outLines.push(line);
+    outLines.push(`line:${redfontLines.length}`);
+    outLines.push(...redfontLines);
     outLines.push("endtype:redfont");
   }
 
-  const outText = outLines.join("\n");
-  downloadCRLF("download_all.txt", outText);
+  downloadCRLF("download_all.txt", outLines.join("\n"));
   alert("✅ Built download_all.txt from uploaded files!");
 }
 
@@ -824,30 +1112,44 @@ document.getElementById("buildAllBtn").addEventListener("click", () => {
   buildDownloadAllFromUploads();
 });
 
-// ===== TG_Grouping：沿用 TG 分組工具 v5 的邏輯 =====
+// =========================
+// TG_Grouping：沿用 TG 分組工具 v5 的邏輯
+// =========================
 function tgParseLine(line) {
   const trimmed = line.trim();
   if (!trimmed) return null;
+
   const parts = trimmed.split(/\s+/);
   if (parts.length >= 4) {
-    return { prefix: parts[0] + " " + parts[1], code: parts[2], marker: parts[3] };
+    return {
+      prefix: `${parts[0]} ${parts[1]}`,
+      code: parts[2],
+      marker: parts[3],
+    };
   }
+
   const m = trimmed.match(/^(\S+\s+\S+)\s+(\S+)\s+(\S+)\s*$/);
   if (m) return { prefix: m[1], code: m[2], marker: m[3] };
+
   return null;
 }
 
 function tgCombineSlice(lines, startIdx, count, badLines) {
   const slice = lines.slice(startIdx, startIdx + count);
+
   const parsed = [];
   for (const raw of slice) {
     const p = tgParseLine(raw);
-    if (p) parsed.push(p); else badLines.push(raw);
+    if (p) parsed.push(p);
+    else badLines.push(raw);
   }
+
   if (parsed.length === 0) return null;
+
   const prefix = parsed[0].prefix;
   const groups = [];
   const seen = new Map();
+
   for (const item of parsed) {
     const { code, marker } = item;
     if (!seen.has(marker)) {
@@ -856,30 +1158,35 @@ function tgCombineSlice(lines, startIdx, count, badLines) {
     }
     groups[seen.get(marker)].codes.push(code);
   }
+
   const out = [prefix];
   for (const g of groups) {
     out.push(...g.codes);
     out.push(g.marker);
   }
+
   return out.join(" ");
 }
 
 function tgParseRangeStr(rng) {
   const m = (rng || "").match(/^(\d+)\s*-\s*(\d+)$/);
   if (!m) throw new Error("Range must be like 7-10 / 范圍必須形如 7-10");
-  const a = parseInt(m[1], 10); const b = parseInt(m[2], 10);
+
+  const a = parseInt(m[1], 10);
+  const b = parseInt(m[2], 10);
   if (!(a >= 1 && b >= a)) throw new Error("Invalid range values / 範圍值無效");
+
   return [a, b];
 }
 
 async function runTGGrouping() {
-  const fileInput = document.getElementById('tgGroupFile');
-  const rangeInput = document.getElementById('tgGroupRange');
-  const maxGroupsInput = document.getElementById('tgGroupMax');
-  const outArea = document.getElementById('tgGroupOutput');
-  const badArea = document.getElementById('tgGroupBad');
-  const status = document.getElementById('tgGroupStatus');
-  const badCount = document.getElementById('tgGroupBadCount');
+  const fileInput = document.getElementById("tgGroupFile");
+  const rangeInput = document.getElementById("tgGroupRange");
+  const maxGroupsInput = document.getElementById("tgGroupMax");
+  const outArea = document.getElementById("tgGroupOutput");
+  const badArea = document.getElementById("tgGroupBad");
+  const status = document.getElementById("tgGroupStatus");
+  const badCount = document.getElementById("tgGroupBadCount");
 
   outArea.value = "";
   badArea.value = "";
@@ -887,7 +1194,10 @@ async function runTGGrouping() {
   badCount.textContent = "0";
 
   const file = fileInput.files && fileInput.files[0];
-  if (!file) { status.textContent = "Please upload a TG file / 請先上傳 TG 檔"; return; }
+  if (!file) {
+    status.textContent = "Please upload a TG file / 請先上傳 TG 檔";
+    return;
+  }
 
   let minG, maxG;
   try {
@@ -897,11 +1207,20 @@ async function runTGGrouping() {
     return;
   }
 
-  const maxGroups = maxGroupsInput.value ? Math.max(1, parseInt(maxGroupsInput.value, 10)) : null;
+  const maxGroups = maxGroupsInput.value
+    ? Math.max(1, parseInt(maxGroupsInput.value, 10))
+    : null;
 
   const text = await file.text();
-  const allLines = text.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
-  if (!allLines.length) { status.textContent = "File is empty / 檔案內容為空"; return; }
+  const allLines = text
+    .split(/\r?\n/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  if (!allLines.length) {
+    status.textContent = "File is empty / 檔案內容為空";
+    return;
+  }
 
   let i = 0;
   let gIdx = 0;
@@ -910,15 +1229,21 @@ async function runTGGrouping() {
 
   while (i < allLines.length) {
     if (maxGroups !== null && gIdx >= maxGroups) break;
+
     const remaining = allLines.length - i;
     let groupSize;
     if (remaining < minG) {
       groupSize = remaining;
     } else {
-      groupSize = Math.min(remaining, Math.floor(Math.random() * (maxG - minG + 1)) + minG);
+      groupSize = Math.min(
+        remaining,
+        Math.floor(Math.random() * (maxG - minG + 1)) + minG
+      );
     }
+
     const combined = tgCombineSlice(allLines, i, groupSize, badLines);
     if (combined) results.push(combined);
+
     i += groupSize;
     gIdx += 1;
   }
@@ -926,234 +1251,143 @@ async function runTGGrouping() {
   outArea.value = results.join("\n");
   badArea.value = badLines.join("\n");
   badCount.textContent = String(badLines.length);
-  status.textContent = `Total lines 總行數: ${allLines.length} ; Completed 已處理行數: ${i} ; Groups 組數: ${results.length} ; Error 錯誤行: ${badLines.length}`;
+  status.textContent =
+    `Total lines 總行數: ${allLines.length} ; ` +
+    `Completed 已處理行數: ${i} ; ` +
+    `Groups 組數: ${results.length} ; ` +
+    `Error 錯誤行: ${badLines.length}`;
 }
 
 function copyTGGroupingOutput() {
-  const out = document.getElementById('tgGroupOutput');
+  const out = document.getElementById("tgGroupOutput");
   out.select();
-  document.execCommand('copy');
+  document.execCommand("copy");
 }
 
 function copyTGGroupingBad() {
-  const bad = document.getElementById('tgGroupBad');
+  const bad = document.getElementById("tgGroupBad");
   bad.select();
-  document.execCommand('copy');
+  document.execCommand("copy");
 }
 
 function downloadTGGroupingOutput() {
-  const text = document.getElementById('tgGroupOutput').value || "";
+  const text = document.getElementById("tgGroupOutput").value || "";
   downloadCRLF("TG_Grouping_Output.txt", text + "\n");
 }
 
 function downloadTGGroupingBad() {
-  const text = document.getElementById('tgGroupBad').value || "";
+  const text = document.getElementById("tgGroupBad").value || "";
   downloadCRLF("TG_Grouping_Errors.txt", text + "\n");
 }
 
-// ===== ARA Parser =====
+// =========================
+// ARA Parser
+// =========================
 
 const araParserFiles = {};
+let araParserCurrent = "";
 
-let araParserCurrent = '';
+const araParserBody = document.getElementById("araParserBody");
+const araParserTabs = document.getElementById("araParserTabs");
+const araParserResult = document.getElementById("araParserResult");
+const araParserInfo = document.getElementById("araParserInfo");
+const araParserTableWrap = document.getElementById("araParserTableWrap");
 
-const araParserBody =
-  document.getElementById('araParserBody');
-
-const araParserTabs =
-  document.getElementById('araParserTabs');
-
-const araParserResult =
-  document.getElementById('araParserResult');
-
-const araParserInfo =
-  document.getElementById('araParserInfo');
-
-document.getElementById('araParserInput')
-.addEventListener('change', function(e){
-
+document.getElementById("araParserInput").addEventListener("change", (e) => {
   const files = e.target.files;
+  if (!files.length) return;
 
-  if(!files.length) return;
-
-  Array.from(files).forEach(file => {
-
+  Array.from(files).forEach((file) => {
     const reader = new FileReader();
-
-    reader.onload = function(event){
-
-      const data =
-        parseARAParser(event.target.result);
-
+    reader.onload = (event) => {
+      const data = parseARAParser(event.target.result);
       araParserFiles[file.name] = data;
 
       renderARAParserTabs();
 
-      if(!araParserCurrent){
-
+      if (!araParserCurrent) {
         araParserCurrent = file.name;
-
         showARAParser(file.name);
-
       }
-
     };
-
     reader.readAsText(file);
-
   });
-
 });
 
-
-function parseARAParser(text){
-
+function parseARAParser(text) {
   const dataList = [];
-
   const lines = text.split(/\r?\n/);
 
-  lines.forEach(line => {
+  lines.forEach((line) => {
+    const s = line.trim();
+    if (!s) return;
 
-    line = line.trim();
+    const match = s.match(/^\d\+(\d+)\+\s*(\d?)\+\s*(\d?)\+/);
+    if (!match) return;
 
-    if(!line) return;
+    const number = match[1];
+    const big = Number(match[2] || 0);
+    const small = Number(match[3] || 0);
 
-    const match = line.match(
-      /^\d\+(\d+)\+\s*(\d?)\+\s*(\d?)\+/
-    );
-
-    if(match){
-
-      const number = match[1];
-const big = Number(match[2] || 0);
-const small = Number(match[3] || 0);
-
-const exist = dataList.find(
-  x => x.number === number
-);
-
-if(exist){
-
-  exist.big += big;
-  exist.small += small;
-
-}else{
-
-  dataList.push({
-    number,
-    big,
-    small
-  });
-
-}
-
+    const exist = dataList.find((x) => x.number === number);
+    if (exist) {
+      exist.big += big;
+      exist.small += small;
+    } else {
+      dataList.push({ number, big, small });
     }
-
   });
 
-  dataList.sort((a,b)=>
-    Number(a.number) - Number(b.number)
-  );
-
+  dataList.sort((a, b) => Number(a.number) - Number(b.number));
   return dataList;
-
 }
 
+function renderARAParserTabs() {
+  araParserTabs.innerHTML = "";
 
-function renderARAParserTabs(){
+  Object.keys(araParserFiles).forEach((fileName) => {
+    const tab = document.createElement("button");
+    tab.className = "tab-btn" + (araParserCurrent === fileName ? " active" : "");
 
-  araParserTabs.innerHTML = '';
+    const parts = fileName.replace(/\.[^.]+$/, "").split("_");
+    tab.innerHTML = `
+      <div style="line-height:1.2; text-align:center;">
+        <div style="font-weight:600; font-size:15px;">
+          ${parts[0] || ""}
+        </div>
+        <div style="font-size:13px; opacity:0.85; margin-top:2px;">
+          ${parts[1] || ""}
+        </div>
+      </div>
+    `;
 
-  Object.keys(araParserFiles)
-  .forEach(fileName => {
-
-    const tab =
-      document.createElement('button');
-
-    tab.className =
-      'tab-btn' +
-      (araParserCurrent === fileName
-        ? ' active'
-        : '');
-
-const parts =
-  fileName
-    .replace(/\.[^.]+$/, '')
-    .split('_');
-
-tab.innerHTML = `
-  <div style="
-    line-height:1.2;
-    text-align:center;
-  ">
-    <div style="
-      font-weight:600;
-      font-size:15px;
-    ">
-      ${parts[0] || ''}
-    </div>
-
-    <div style="
-      font-size:13px;
-      opacity:0.85;
-      margin-top:2px;
-    ">
-      ${parts[1] || ''}
-    </div>
-  </div>
-`;
-
-    tab.onclick = function(){
-
+    tab.onclick = () => {
       araParserCurrent = fileName;
-
       renderARAParserTabs();
-
       showARAParser(fileName);
-
     };
 
     araParserTabs.appendChild(tab);
-
   });
-
 }
 
+function showARAParser(fileName) {
+  const dataList = araParserFiles[fileName];
+  araParserBody.innerHTML = "";
+  if (araParserTableWrap) araParserTableWrap.classList.remove("active");
 
-function showARAParser(fileName){
-
-  const dataList =
-    araParserFiles[fileName];
-
-  araParserBody.innerHTML = '';
+  if (!dataList.length) return;
+  if (araParserTableWrap) araParserTableWrap.classList.add("active");
 
   let totalBig = 0;
   let totalSmall = 0;
+  let text = "";
 
-  let text = '';
-
-  if(!dataList.length){
-
-    araParserBody.innerHTML = `
-      <tr>
-        <td colspan="3" class="empty">
-          No Data
-        </td>
-      </tr>
-    `;
-
-    return;
-
-  }
-
-  dataList.forEach(item => {
-
+  dataList.forEach((item) => {
     totalBig += item.big;
     totalSmall += item.small;
 
-    const tr =
-      document.createElement('tr');
-
+    const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${item.number}</td>
       <td>${item.big}</td>
@@ -1161,90 +1395,44 @@ function showARAParser(fileName){
     `;
 
     araParserBody.appendChild(tr);
-
-    text +=
-      `${item.number}\t${item.big}\t${item.small}\n`;
-
+    text += `${item.number}\t${item.big}\t${item.small}\n`;
   });
 
   araParserInfo.innerHTML = `
-  <div style="
-    color:#2563eb;
-    font-size:13px;
-    font-weight:600;
-    line-height:1.4;
-  ">
-    ${fileName}
-    ｜ Total ${dataList.length}
-    ｜ Big ${totalBig}
-    ｜ Small ${totalSmall}
-  </div>
-`;
+    <div class="ara-info-text">
+      ${fileName}
+      ｜ Total ${dataList.length}
+      ｜ Big ${totalBig}
+      ｜ Small ${totalSmall}
+    </div>
+  `;
 
   araParserResult.value = text;
-
 }
 
+function sortARAParser(type) {
+  if (!araParserCurrent) return;
 
-function sortARAParser(type){
+  const dataList = araParserFiles[araParserCurrent];
 
-  if(!araParserCurrent) return;
-
-  const dataList =
-    araParserFiles[araParserCurrent];
-
-  if(type === 'number'){
-
-    dataList.sort((a,b)=>
-      Number(a.number) -
-      Number(b.number)
-    );
-
-  }
-
-  if(type === 'big'){
-
-    dataList.sort((a,b)=>
-      b.big - a.big
-    );
-
-  }
-
-  if(type === 'small'){
-
-    dataList.sort((a,b)=>
-      b.small - a.small
-    );
-
-  }
+  if (type === "number") dataList.sort((a, b) => Number(a.number) - Number(b.number));
+  if (type === "big") dataList.sort((a, b) => b.big - a.big);
+  if (type === "small") dataList.sort((a, b) => b.small - a.small);
 
   showARAParser(araParserCurrent);
-
 }
 
-
-function copyARAParser(){
-
-  navigator.clipboard.writeText(
-    araParserResult.value
-  );
-
-  alert('Copied');
-
+function copyARAParser() {
+  navigator.clipboard.writeText(araParserResult.value);
+  alert("Copied");
 }
 
-
-function downloadARAParser(){
-
-  if(!araParserCurrent) return;
-
-  downloadCRLF(
-    araParserCurrent + '_result.txt',
-    araParserResult.value
-  );
-
+function downloadARAParser() {
+  if (!araParserCurrent) return;
+  downloadCRLF(araParserCurrent + "_result.txt", araParserResult.value);
 }
 </script>
-
+</div>
+</div>
 </body>
 </html>
